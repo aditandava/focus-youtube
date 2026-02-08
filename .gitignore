@@ -1,0 +1,12 @@
+*.ico
+*.png
+*.exe
+*.dll
+*.pdb
+*.cache
+.vs/
+obj/
+bin/
+mpv.exe
+yt-dlp.exe
+ffmpeg.exe
