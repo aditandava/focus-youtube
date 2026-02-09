@@ -8,26 +8,30 @@
 
 ## ✨ Features
 
--   **🔒 Hard System Lock**: Minimizes distractions by hiding the database bar and blocking Task Manager (optional in code) during sessions.
+-   **🔒 Hard System Lock**: Minimizes distractions by hiding the taskbar and blocking Task Manager during sessions.
 -   **📺 Resolution Control**: Select your preferred quality from **360p** up to **4K** (Default: 720p).
--   **⚡ Strict Input Enforcement**: Only 5 specific keys work. Everything else (Space, Arrows, Enter, Mouse Wheel) is **BANNED** to prevent skipping or diversion.
+-   **🖥️ True Fullscreen**: Video plays in complete fullscreen with no window decorations.
+-   **🖱️ Mouse-Only Controls**: Keyboard is **completely disabled**. Only mouse controls work!
+-   **👻 Auto-Hide Cursor**: Cursor disappears after 500ms of inactivity (mouse still works).
 -   **🛡️ Robust Playback**:
-    -   **Session-Unique Configs**: Generates fresh settings for every video to prevent glitches.
+    -   **Session-Unique Configs**: Generates fresh settings for every session.
     -   **Smart Buffering**: 150MB cache pre-buffer for smooth 4K/1080p streaming.
     -   **IPv4 Enforcement**: Prevents common YouTube throttling/buffering issues.
 -   **⏱️ Study Timer**: Preset durations (30m, 1h, etc.) or Custom Timer.
 
-## 🎹 Strict Key Bindings
+## 🖱️ Mouse Controls
 
-Only these keys are allowed. All others are ignored.
+**Keyboard is COMPLETELY DISABLED.** Only these mouse actions work:
 
-| Key | Action |
+| Mouse Action | Effect |
 | :--- | :--- |
-| **L** | Speed +0.1x |
-| **K** | Speed -0.1x |
-| **R** | Reset Speed to 1.0x |
-| **S** | Volume +5% |
-| **A** | Volume -5% |
+| 🔄 **Scroll UP** | Speed +0.1x |
+| 🔄 **Scroll DOWN** | Speed -0.1x |
+| 🖱️ **Right-Click** | Volume +5% |
+| 🖱️ **Left-Click** | Volume -5% |
+| 🖱️ **Middle-Click** | Reset Speed to 1.0x |
+
+> **Note:** All keyboard keys (Q, W, Space, Escape, Arrows, etc.) are ignored to prevent any distractions or accidental exits.
 
 ## 🛠️ Installation & Requirements
 
@@ -42,13 +46,15 @@ The application requires the following **4 files** in the same folder as `FocusM
 
 ### 📂 Directory Structure
 ```
-FocusMode/
-├── FocusMode.exe       # Main Application
-├── mpv.exe            # Player Core
-├── ffmpeg.exe         # Processing Core (MUST BE PRESENT)
-├── yt-dlp.exe         # Stream Extractor
-├── focus_icon.ico     # Icon
-└── config\            # (Auto-Generated per session)
+C:\mpv\
+├── FocusMode.exe        # Main Application
+├── mpv.exe              # Player Core
+├── ffmpeg.exe           # Processing Core (MUST BE PRESENT)
+├── yt-dlp.exe           # Stream Extractor
+├── focus_icon.ico       # Icon
+└── portable_config\     # (Auto-Generated per session)
+    ├── input.conf       # Mouse bindings
+    └── mpv.conf         # Player settings
 ```
 
 ## 🚀 How to Build
@@ -57,19 +63,20 @@ You can compile this project using the built-in C# compiler on any Windows machi
 
 **Run this command in PowerShell:**
 ```powershell
-& "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /out:"FocusMode.exe" /reference:System.dll,System.Windows.Forms.dll,System.Drawing.dll "FocusMode.cs" /win32icon:"focus_icon.ico"
+& "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /out:"FocusMode.exe" /win32icon:"focus_icon.ico" "FocusMode.cs"
 ```
 
 ## 📝 Configuration Logic
 
-Focus Mode uses a **Hybrid Input Strategy**:
-1.  **On Launch**: It generates a unique `input_{GUID}.conf` file.
-2.  **Explicit Whitelist**: It allows only specific keys (L, K, A, S, R).
-3.  **Explicit Grant**: It explicitly ignores common keys (Space, Enter, Esc, Arrows) to prevent default MPV behavior overrides.
-4.  **Auto-Cleanup**: The config file is deleted immediately after the session ends.
+Focus Mode uses a **portable_config** approach:
+1.  **On Launch**: Creates `portable_config` folder with `input.conf` and `mpv.conf`.
+2.  **Mouse Whitelist**: Enables scroll wheel and mouse buttons for control.
+3.  **Keyboard Blacklist**: Explicitly ignores ALL keyboard keys (a-z, 0-9, F1-F12, Space, Enter, Esc, Arrows, etc.).
+4.  **OSC Disabled**: On-screen controller is disabled to prevent mouse click interception.
+5.  **Fullscreen + Hidden Cursor**: True fullscreen with auto-hiding cursor.
 
 ## ⚠️ Disclaimer
-This tool includes a `Task Manager Blocker` to prevent force-quitting during a focus session. Use responsibly. To exit in an emergency, you may need to restart your computer if the timer hasn't finished.
+This tool includes a `Task Manager Blocker` to prevent force-quitting during a focus session. Use responsibly. To exit in an emergency, you may need to restart your computer if the timer hasn't finished. The video will end naturally when complete or when the timer expires.
 
 ---
-*Built for the ultimate focused mind.*
+*Built for the ultimate focused mind.* 🧠

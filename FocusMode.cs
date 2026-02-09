@@ -13,7 +13,7 @@ namespace FocusMode
     public class MainForm : Form
     {
         private TextBox urlTextBox;
-        private ComboBox resolutionBox; // New Resolution Selector
+        private ComboBox resolutionBox;
         private Label statusLabel;
         private Button[] timerButtons;
         private TextBox hoursBox, minsBox;
@@ -31,55 +31,29 @@ namespace FocusMode
 
         public MainForm()
         {
-            appDir = AppDomain.CurrentDomain.BaseDirectory;
-            if (!File.Exists(Path.Combine(appDir, "mpv.exe")))
-                appDir = Directory.GetParent(appDir) != null ? Directory.GetParent(appDir).FullName : appDir;
+            appDir = @"C:\mpv";
+            if (!Directory.Exists(appDir) || !File.Exists(Path.Combine(appDir, "mpv.exe")))
+            {
+                appDir = AppDomain.CurrentDomain.BaseDirectory;
+                if (!File.Exists(Path.Combine(appDir, "mpv.exe")))
+                    appDir = Directory.GetParent(appDir) != null ? Directory.GetParent(appDir).FullName : appDir;
+            }
 
             InitializeUI();
             CheckDependencies();
-            // Per-session config logic is now in RunFocusMode
+            CleanupOldConfigs(); // Clean up any conflicting configs
         }
 
-        private void EnsureInputConf()
+        private void CleanupOldConfigs()
         {
             try
             {
-                string configDir = Path.Combine(appDir, "config");
-                if (!Directory.Exists(configDir)) Directory.CreateDirectory(configDir);
-
-                string inputConfPath = Path.Combine(configDir, "input.conf");
-                string content = 
-                    "# Focus Mode Input Config\n" +
-                    "l add speed 0.1\n" +
-                    "L add speed 0.1\n" +
-                    "k add speed -0.1\n" +
-                    "K add speed -0.1\n" +
-                    "s add volume 5\n" +
-                    "S add volume 5\n" +
-                    "a add volume -5\n" +
-                    "A add volume -5\n" +
-                    "r set speed 1.0\n" +
-                    "R set speed 1.0\n" +
-                    "\n" +
-                    "# EXPLICITLY IGNORE EVERYTHING ELSE\n" +
-                    "SPACE ignore\n" +
-                    "ENTER ignore\n" +
-                    "ESC ignore\n" +
-                    "LEFT ignore\n" +
-                    "RIGHT ignore\n" +
-                    "UP ignore\n" +
-                    "DOWN ignore\n" +
-                    "BS ignore\n" +
-                    "DEL ignore\n" +
-                    "WHEEL_UP ignore\n" +
-                    "WHEEL_DOWN ignore\n" +
-                    "WHEEL_LEFT ignore\n" +
-                    "WHEEL_RIGHT ignore\n" +
-                    "MBTN_LEFT ignore\n" +
-                    "MBTN_RIGHT ignore\n" +
-                    "MBTN_MID ignore\n"; // Add more as needed
-
-                File.WriteAllText(inputConfPath, content);
+                // Remove old config folder that may have conflicting input.conf
+                string oldConfigDir = Path.Combine(appDir, "config");
+                if (Directory.Exists(oldConfigDir))
+                {
+                    try { Directory.Delete(oldConfigDir, true); } catch { }
+                }
             }
             catch { }
         }
@@ -197,9 +171,8 @@ namespace FocusMode
             urlTextBox.ForeColor = Color.FromArgb(243, 244, 246);
             urlTextBox.BorderStyle = BorderStyle.FixedSingle;
             Controls.Add(urlTextBox);
-            y += 50; // Increased spacing
+            y += 50;
 
-            // --- RESOLUTION SELECTOR ---
             Label resLabel = new Label();
             resLabel.Text = "Quality";
             resLabel.Font = new Font("Segoe UI", 11, FontStyle.Bold);
@@ -210,7 +183,7 @@ namespace FocusMode
 
             resolutionBox = new ComboBox();
             resolutionBox.Items.AddRange(new object[] { "360p", "480p", "720p (Default)", "1080p", "1440p", "4K (2160p)" });
-            resolutionBox.SelectedIndex = 2; // Default to 720p
+            resolutionBox.SelectedIndex = 2;
             resolutionBox.Location = new Point(120, y);
             resolutionBox.Size = new Size(150, 30);
             resolutionBox.Font = new Font("Segoe UI", 11);
@@ -220,7 +193,6 @@ namespace FocusMode
             resolutionBox.DropDownStyle = ComboBoxStyle.DropDownList;
             Controls.Add(resolutionBox);
             y += 55;
-            // ---------------------------
 
             Label timerLabel = new Label();
             timerLabel.Text = "Duration Mode";
@@ -321,20 +293,20 @@ namespace FocusMode
             y += 75;
 
             Panel warningPanel = new Panel();
-            warningPanel.Size = new Size(Width - 80, 50);
+            warningPanel.Size = new Size(Width - 80, 70);
             warningPanel.Location = new Point(40, y);
             warningPanel.BackColor = Color.FromArgb(31, 31, 46);
             
             Label warningLabel = new Label();
-            warningLabel.Text = "Warning: This locks your system. Only video end, timer, or reboot will restore.";
-            warningLabel.Font = new Font("Segoe UI", 10);
+            warningLabel.Text = "⚠ Keyboard DISABLED during focus!\n🖱 Scroll UP = Speed Up | Scroll DOWN = Speed Down\n🖱 Right-Click = Vol Up | Left-Click = Vol Down | Mid = Reset";
+            warningLabel.Font = new Font("Segoe UI", 9);
             warningLabel.ForeColor = Color.FromArgb(251, 191, 36);
             warningLabel.AutoSize = false;
-            warningLabel.Size = new Size(Width - 100, 40);
+            warningLabel.Size = new Size(Width - 100, 60);
             warningLabel.Location = new Point(10, 5);
             warningPanel.Controls.Add(warningLabel);
             Controls.Add(warningPanel);
-            y += 65;
+            y += 80;
 
             statusLabel = new Label();
             statusLabel.Text = "Ready - Enter YouTube URL and select duration";
@@ -459,53 +431,110 @@ namespace FocusMode
                 blockerCts = new CancellationTokenSource();
                 ThreadPool.QueueUserWorkItem(delegate { BlockTaskMgr(); });
 
-                // We do NOT hide the form here; it serves as background until MPV covers it.
-
                 string mpvPath = Path.Combine(appDir, "mpv.exe");
-                // Generate UNIQUE input config for this session to prevent locking/caching issues
-                string uniqueId = Guid.NewGuid().ToString().Substring(0, 8);
-                string inputConfPath = Path.Combine(appDir, "config", "input_" + uniqueId + ".conf");
-                string configDir = Path.Combine(appDir, "config");
-                if (!Directory.Exists(configDir)) Directory.CreateDirectory(configDir);
+                
+                // Use portable_config folder - this is MPV's standard for portable installations
+                string portableConfigDir = Path.Combine(appDir, "portable_config");
+                if (!Directory.Exists(portableConfigDir)) Directory.CreateDirectory(portableConfigDir);
+                
+                string inputConfPath = Path.Combine(portableConfigDir, "input.conf");
 
+                // MOUSE-ONLY CONTROLS - ALL KEYBOARD DISABLED
+                // Using portable_config which MPV auto-detects
                 string inputContent = 
-                    "# Focus Mode Input Session " + uniqueId + "\n" +
-                    "l add speed 0.1\n" +
-                    "L add speed 0.1\n" +
-                    "k add speed -0.1\n" +
-                    "K add speed -0.1\n" +
-                    "s add volume 5\n" +
-                    "S add volume 5\n" +
-                    "a add volume -5\n" +
-                    "A add volume -5\n" +
-                    "r set speed 1.0\n" +
-                    "R set speed 1.0\n" +
+                    "# Focus Mode - MOUSE ONLY CONTROLS\n" +
+                    "# ============================================\n" +
+                    "# SCROLL UP = Speed Up (+0.1)\n" +
+                    "# SCROLL DOWN = Speed Down (-0.1)\n" +
+                    "# RIGHT CLICK = Volume Up (+5)\n" +
+                    "# LEFT CLICK = Volume Down (-5)\n" +
+                    "# MIDDLE CLICK = Reset Speed to 1.0\n" +
+                    "# ============================================\n\n" +
+                    
+                    "# MOUSE CONTROLS - ACTIVE\n" +
+                    "WHEEL_UP add speed 0.1\n" +
+                    "WHEEL_DOWN add speed -0.1\n" +
+                    "MBTN_RIGHT add volume 5\n" +
+                    "MBTN_LEFT add volume -5\n" +
+                    "MBTN_MID set speed 1.0\n" +
+                    "MBTN_LEFT_DBL ignore\n" +
+                    "MBTN_RIGHT_DBL ignore\n" +
                     "\n" +
-                    "# EXPLICITLY IGNORE EVERYTHING ELSE\n" +
+                    
+                    "# DISABLE ALL KEYBOARD KEYS\n" +
+                    "a ignore\nb ignore\nc ignore\nd ignore\ne ignore\nf ignore\ng ignore\nh ignore\n" +
+                    "i ignore\nj ignore\nk ignore\nl ignore\nm ignore\nn ignore\no ignore\np ignore\n" +
+                    "q ignore\nr ignore\ns ignore\nt ignore\nu ignore\nv ignore\nw ignore\nx ignore\n" +
+                    "y ignore\nz ignore\n" +
+                    "A ignore\nB ignore\nC ignore\nD ignore\nE ignore\nF ignore\nG ignore\nH ignore\n" +
+                    "I ignore\nJ ignore\nK ignore\nL ignore\nM ignore\nN ignore\nO ignore\nP ignore\n" +
+                    "Q ignore\nR ignore\nS ignore\nT ignore\nU ignore\nV ignore\nW ignore\nX ignore\n" +
+                    "Y ignore\nZ ignore\n" +
+                    "0 ignore\n1 ignore\n2 ignore\n3 ignore\n4 ignore\n" +
+                    "5 ignore\n6 ignore\n7 ignore\n8 ignore\n9 ignore\n" +
                     "SPACE ignore\n" +
                     "ENTER ignore\n" +
                     "ESC ignore\n" +
+                    "TAB ignore\n" +
+                    "BS ignore\n" +
+                    "DEL ignore\n" +
+                    "INS ignore\n" +
+                    "HOME ignore\n" +
+                    "END ignore\n" +
+                    "PGUP ignore\n" +
+                    "PGDWN ignore\n" +
                     "LEFT ignore\n" +
                     "RIGHT ignore\n" +
                     "UP ignore\n" +
                     "DOWN ignore\n" +
-                    "BS ignore\n" +
-                    "DEL ignore\n" +
-                    "WHEEL_UP ignore\n" +
-                    "WHEEL_DOWN ignore\n" +
+                    "F1 ignore\nF2 ignore\nF3 ignore\nF4 ignore\nF5 ignore\nF6 ignore\n" +
+                    "F7 ignore\nF8 ignore\nF9 ignore\nF10 ignore\nF11 ignore\nF12 ignore\n" +
+                    "SHARP ignore\n" +
+                    "POWER ignore\n" +
+                    "MENU ignore\n" +
+                    "PLAY ignore\n" +
+                    "PAUSE ignore\n" +
+                    "PLAYPAUSE ignore\n" +
+                    "STOP ignore\n" +
+                    "FORWARD ignore\n" +
+                    "REWIND ignore\n" +
+                    "NEXT ignore\n" +
+                    "PREV ignore\n" +
+                    "VOLUME_UP ignore\n" +
+                    "VOLUME_DOWN ignore\n" +
+                    "MUTE ignore\n" +
+                    "CLOSE_WIN ignore\n" +
+                    "CTRL+a ignore\nCTRL+b ignore\nCTRL+c ignore\nCTRL+d ignore\nCTRL+e ignore\n" +
+                    "CTRL+f ignore\nCTRL+g ignore\nCTRL+h ignore\nCTRL+i ignore\nCTRL+j ignore\n" +
+                    "CTRL+k ignore\nCTRL+l ignore\nCTRL+m ignore\nCTRL+n ignore\nCTRL+o ignore\n" +
+                    "CTRL+p ignore\nCTRL+q ignore\nCTRL+r ignore\nCTRL+s ignore\nCTRL+t ignore\n" +
+                    "CTRL+u ignore\nCTRL+v ignore\nCTRL+w ignore\nCTRL+x ignore\nCTRL+y ignore\n" +
+                    "CTRL+z ignore\n" +
+                    "ALT+ENTER ignore\n" +
                     "WHEEL_LEFT ignore\n" +
-                    "WHEEL_RIGHT ignore\n" +
-                    "MBTN_LEFT ignore\n" +
-                    "MBTN_RIGHT ignore\n" +
-                    "MBTN_MID ignore\n";
+                    "WHEEL_RIGHT ignore\n";
                 
                 File.WriteAllText(inputConfPath, inputContent);
+
+                // Also create mpv.conf to ensure no OSC interferes
+                string mpvConfPath = Path.Combine(portableConfigDir, "mpv.conf");
+                string mpvConfContent = 
+                    "# Focus Mode MPV Config\n" +
+                    "osc=no\n" +              // Disable on-screen controller (can intercept clicks)
+                    "osd-level=1\n" +
+                    "osd-bar=yes\n" +
+                    "osd-duration=2000\n" +
+                    "cache=yes\n" +
+                    "demuxer-max-bytes=150MiB\n" +
+                    "fullscreen=yes\n" +       // Start in fullscreen mode
+                    "cursor-autohide=500\n" +  // Hide cursor after 500ms of inactivity
+                    "cursor-autohide-fs-only=no\n"; // Hide cursor even outside fullscreen
+                File.WriteAllText(mpvConfPath, mpvConfContent);
 
                 ProcessStartInfo si = new ProcessStartInfo();
                 si.FileName = mpvPath;
 
-                // GET SELECTED RESOLUTION
-                string resText = "720"; // Default
+                string resText = "720";
                 this.Invoke((MethodInvoker)delegate { resText = resolutionBox.Text; });
                 
                 string maxHeight = "720";
@@ -516,19 +545,14 @@ namespace FocusMode
                 else if (resText.Contains("2160") || resText.Contains("4K")) maxHeight = "2160";
                 else maxHeight = "720";
 
-                string ytdlFormat = "\"bestvideo[height<=" + maxHeight + "]+bestaudio/best[height<=" + maxHeight + "]\"";
+                string ytdlFormat = "bestvideo[height<=" + maxHeight + "]+bestaudio/best[height<=" + maxHeight + "]";
 
-                // STREAMING MODE - With strict key bindings & network fixes & BUFFERING
-                // REMOVED input-default-bindings=no -> Now we rely on EXPLICIT IGNORING in UNIQUE input.conf
+                // Simplified args - let portable_config handle input bindings
+                // --no-input-default-bindings ensures only our bindings are used
                 string args =  "--force-window=yes " +
-                               "--input-conf=\"" + inputConfPath + "\" " +
-                               "--osd-level=1 " +               // Enable OSD text
-                               "--osd-bar=yes " +               // Enable OSD bar
-                               "--osd-duration=2000 " +         // Show for 2 seconds
+                               "--no-input-default-bindings " +
                                "--ytdl-raw-options=force-ipv4= " + 
-                               "--ytdl-format=" + ytdlFormat + " " + // DYNAMIC RESOLUTION
-                               "--cache=yes " +                 // Enable Cache
-                               "--demuxer-max-bytes=150MiB " +  // Large buffer
+                               "--ytdl-format=\"" + ytdlFormat + "\" " +
                                "\"" + url + "\"";
                                
                 si.Arguments = args;
@@ -557,21 +581,16 @@ namespace FocusMode
                 if (mpvProcess != null)
                     mpvProcess.WaitForExit();
 
-                // CLEANUP SESSION CONFIG
-                try { if (File.Exists(inputConfPath)) File.Delete(inputConfPath); } catch { }
-
-                // Check if MPV exited too quickly (video failed to load)
                 TimeSpan duration = DateTime.Now - startTime;
 
                 if (duration.TotalSeconds < 30 && !isRetry)
                 {
-                    // Video failed - update yt-dlp and retry
                     ShowLoading("Video failed to load.\nUpdating yt-dlp...\nPlease wait...");
                     if (UpdateYtDlp())
                     {
                         ShowLoading("Retrying...");
                         Thread.Sleep(1000);
-                        RunFocusMode(url, true); // Retry once
+                        RunFocusMode(url, true);
                         return;
                     }
                 }
@@ -587,8 +606,7 @@ namespace FocusMode
         {
             try
             {
-                // IMPORTANT: GitHub requires TLS 1.2
-                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; // Tls12
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072;
 
                 string ytdlpPath = Path.Combine(appDir, "yt-dlp.exe");
                 string backupPath = Path.Combine(appDir, "yt-dlp.old");
