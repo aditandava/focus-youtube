@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 
 namespace FocusMode
@@ -12,9 +13,11 @@ namespace FocusMode
     public class MainForm : Form
     {
         private TextBox urlTextBox;
+        private ComboBox resolutionBox; // New Resolution Selector
         private Label statusLabel;
         private Button[] timerButtons;
         private TextBox hoursBox, minsBox;
+        private Label loadingLabel;
         private int selectedMinutes = 0;
         private bool focusActive = false;
         private Process mpvProcess;
@@ -33,6 +36,61 @@ namespace FocusMode
                 appDir = Directory.GetParent(appDir) != null ? Directory.GetParent(appDir).FullName : appDir;
 
             InitializeUI();
+            CheckDependencies();
+            // Per-session config logic is now in RunFocusMode
+        }
+
+        private void EnsureInputConf()
+        {
+            try
+            {
+                string configDir = Path.Combine(appDir, "config");
+                if (!Directory.Exists(configDir)) Directory.CreateDirectory(configDir);
+
+                string inputConfPath = Path.Combine(configDir, "input.conf");
+                string content = 
+                    "# Focus Mode Input Config\n" +
+                    "l add speed 0.1\n" +
+                    "L add speed 0.1\n" +
+                    "k add speed -0.1\n" +
+                    "K add speed -0.1\n" +
+                    "s add volume 5\n" +
+                    "S add volume 5\n" +
+                    "a add volume -5\n" +
+                    "A add volume -5\n" +
+                    "r set speed 1.0\n" +
+                    "R set speed 1.0\n" +
+                    "\n" +
+                    "# EXPLICITLY IGNORE EVERYTHING ELSE\n" +
+                    "SPACE ignore\n" +
+                    "ENTER ignore\n" +
+                    "ESC ignore\n" +
+                    "LEFT ignore\n" +
+                    "RIGHT ignore\n" +
+                    "UP ignore\n" +
+                    "DOWN ignore\n" +
+                    "BS ignore\n" +
+                    "DEL ignore\n" +
+                    "WHEEL_UP ignore\n" +
+                    "WHEEL_DOWN ignore\n" +
+                    "WHEEL_LEFT ignore\n" +
+                    "WHEEL_RIGHT ignore\n" +
+                    "MBTN_LEFT ignore\n" +
+                    "MBTN_RIGHT ignore\n" +
+                    "MBTN_MID ignore\n"; // Add more as needed
+
+                File.WriteAllText(inputConfPath, content);
+            }
+            catch { }
+        }
+
+        private void CheckDependencies()
+        {
+            string ffPath = Path.Combine(appDir, "ffmpeg.exe");
+            if (!File.Exists(ffPath))
+            {
+                MessageBox.Show("Warning: ffmpeg.exe is missing!\nYouTube playback may fail.\nPlease ensure dependencies are installed.", "Missing Dependency", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         private void InitializeUI()
@@ -66,6 +124,26 @@ namespace FocusMode
             closeBtn.MouseEnter += delegate { closeBtn.BackColor = Color.FromArgb(239, 68, 68); };
             closeBtn.MouseLeave += delegate { closeBtn.BackColor = Color.Transparent; };
             Controls.Add(closeBtn);
+
+            Button updateBtn = new Button();
+            updateBtn.Text = "↻";
+            updateBtn.Size = new Size(30, 30);
+            updateBtn.Location = new Point(Width - 90, 15);
+            updateBtn.FlatStyle = FlatStyle.Flat;
+            updateBtn.BackColor = Color.Transparent;
+            updateBtn.ForeColor = Color.FromArgb(107, 114, 128);
+            updateBtn.Font = new Font("Segoe UI", 12);
+            updateBtn.Cursor = Cursors.Hand;
+            updateBtn.FlatAppearance.BorderSize = 0;
+            updateBtn.Click += delegate { 
+                ShowLoading("Updating yt-dlp...\nPlease wait...");
+                ThreadPool.QueueUserWorkItem(delegate { 
+                    bool success = UpdateYtDlp(); 
+                    HideLoading();
+                    if (success) MessageBox.Show("Update Complete!", "Focus Mode");
+                });
+            };
+            Controls.Add(updateBtn);
 
             int y = 30;
 
@@ -119,7 +197,30 @@ namespace FocusMode
             urlTextBox.ForeColor = Color.FromArgb(243, 244, 246);
             urlTextBox.BorderStyle = BorderStyle.FixedSingle;
             Controls.Add(urlTextBox);
+            y += 50; // Increased spacing
+
+            // --- RESOLUTION SELECTOR ---
+            Label resLabel = new Label();
+            resLabel.Text = "Quality";
+            resLabel.Font = new Font("Segoe UI", 11, FontStyle.Bold);
+            resLabel.ForeColor = Color.FromArgb(229, 231, 235);
+            resLabel.Location = new Point(40, y + 5);
+            resLabel.AutoSize = true;
+            Controls.Add(resLabel);
+
+            resolutionBox = new ComboBox();
+            resolutionBox.Items.AddRange(new object[] { "360p", "480p", "720p (Default)", "1080p", "1440p", "4K (2160p)" });
+            resolutionBox.SelectedIndex = 2; // Default to 720p
+            resolutionBox.Location = new Point(120, y);
+            resolutionBox.Size = new Size(150, 30);
+            resolutionBox.Font = new Font("Segoe UI", 11);
+            resolutionBox.BackColor = Color.FromArgb(31, 31, 46);
+            resolutionBox.ForeColor = Color.White;
+            resolutionBox.FlatStyle = FlatStyle.Flat;
+            resolutionBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            Controls.Add(resolutionBox);
             y += 55;
+            // ---------------------------
 
             Label timerLabel = new Label();
             timerLabel.Text = "Duration Mode";
@@ -244,6 +345,19 @@ namespace FocusMode
             statusLabel.TextAlign = ContentAlignment.MiddleCenter;
             statusLabel.Location = new Point(0, y);
             Controls.Add(statusLabel);
+
+            loadingLabel = new Label();
+            loadingLabel.Text = "";
+            loadingLabel.Font = new Font("Segoe UI", 14, FontStyle.Bold);
+            loadingLabel.ForeColor = Color.FromArgb(124, 58, 237);
+            loadingLabel.BackColor = Color.FromArgb(15, 15, 25);
+            loadingLabel.AutoSize = false;
+            loadingLabel.Size = new Size(Width, Height);
+            loadingLabel.TextAlign = ContentAlignment.MiddleCenter;
+            loadingLabel.Location = new Point(0, 0);
+            loadingLabel.Visible = false;
+            Controls.Add(loadingLabel);
+            loadingLabel.BringToFront();
         }
 
         private Button CreateTimerButton(string text, int x, int y, bool selected)
@@ -313,16 +427,29 @@ namespace FocusMode
             if (string.IsNullOrEmpty(url)) { UpdateStatus("Enter a YouTube URL", true); return; }
             if (!ValidateUrl(url)) { UpdateStatus("Invalid YouTube URL", true); return; }
 
-            UpdateStatus("Activating Focus Mode...", false);
+            ShowLoading("Starting Focus Mode...");
             focusActive = true;
                         
-            // Force kill any existing MPV instances FIRST
             KillProcess("mpv");
             
-            ThreadPool.QueueUserWorkItem(delegate { RunFocusMode(url); });
+            ThreadPool.QueueUserWorkItem(delegate { RunFocusMode(url, false); });
         }
 
-        private void RunFocusMode(string url)
+        private void ShowLoading(string message)
+        {
+            this.Invoke((MethodInvoker)delegate 
+            { 
+                loadingLabel.Text = message;
+                loadingLabel.Visible = true;
+            });
+        }
+
+        private void HideLoading()
+        {
+            this.Invoke((MethodInvoker)delegate { loadingLabel.Visible = false; });
+        }
+
+        private void RunFocusMode(string url, bool isRetry)
         {
             try
             {
@@ -332,28 +459,87 @@ namespace FocusMode
                 blockerCts = new CancellationTokenSource();
                 ThreadPool.QueueUserWorkItem(delegate { BlockTaskMgr(); });
 
-                this.Invoke((MethodInvoker)delegate { this.Hide(); });
+                // We do NOT hide the form here; it serves as background until MPV covers it.
 
                 string mpvPath = Path.Combine(appDir, "mpv.exe");
-                
-                string inputConfPath = Path.Combine(appDir, "config", "input.conf");
+                // Generate UNIQUE input config for this session to prevent locking/caching issues
+                string uniqueId = Guid.NewGuid().ToString().Substring(0, 8);
+                string inputConfPath = Path.Combine(appDir, "config", "input_" + uniqueId + ".conf");
                 string configDir = Path.Combine(appDir, "config");
+                if (!Directory.Exists(configDir)) Directory.CreateDirectory(configDir);
+
+                string inputContent = 
+                    "# Focus Mode Input Session " + uniqueId + "\n" +
+                    "l add speed 0.1\n" +
+                    "L add speed 0.1\n" +
+                    "k add speed -0.1\n" +
+                    "K add speed -0.1\n" +
+                    "s add volume 5\n" +
+                    "S add volume 5\n" +
+                    "a add volume -5\n" +
+                    "A add volume -5\n" +
+                    "r set speed 1.0\n" +
+                    "R set speed 1.0\n" +
+                    "\n" +
+                    "# EXPLICITLY IGNORE EVERYTHING ELSE\n" +
+                    "SPACE ignore\n" +
+                    "ENTER ignore\n" +
+                    "ESC ignore\n" +
+                    "LEFT ignore\n" +
+                    "RIGHT ignore\n" +
+                    "UP ignore\n" +
+                    "DOWN ignore\n" +
+                    "BS ignore\n" +
+                    "DEL ignore\n" +
+                    "WHEEL_UP ignore\n" +
+                    "WHEEL_DOWN ignore\n" +
+                    "WHEEL_LEFT ignore\n" +
+                    "WHEEL_RIGHT ignore\n" +
+                    "MBTN_LEFT ignore\n" +
+                    "MBTN_RIGHT ignore\n" +
+                    "MBTN_MID ignore\n";
+                
+                File.WriteAllText(inputConfPath, inputContent);
 
                 ProcessStartInfo si = new ProcessStartInfo();
                 si.FileName = mpvPath;
+
+                // GET SELECTED RESOLUTION
+                string resText = "720"; // Default
+                this.Invoke((MethodInvoker)delegate { resText = resolutionBox.Text; });
                 
-                // Embed the critical strict settings DIRECTLY in the command arguments
+                string maxHeight = "720";
+                if (resText.Contains("360")) maxHeight = "360";
+                else if (resText.Contains("480")) maxHeight = "480";
+                else if (resText.Contains("1080")) maxHeight = "1080";
+                else if (resText.Contains("1440")) maxHeight = "1440";
+                else if (resText.Contains("2160") || resText.Contains("4K")) maxHeight = "2160";
+                else maxHeight = "720";
+
+                string ytdlFormat = "\"bestvideo[height<=" + maxHeight + "]+bestaudio/best[height<=" + maxHeight + "]\"";
+
+                // STREAMING MODE - With strict key bindings & network fixes & BUFFERING
+                // REMOVED input-default-bindings=no -> Now we rely on EXPLICIT IGNORING in UNIQUE input.conf
                 string args =  "--force-window=yes " +
-                               "--input-default-bindings=no " + // BLOCK EVERYTHING
-                               "--input-conf=\"" + inputConfPath + "\" " + // FORCE OUR INPUT FILE
-                               "--config-dir=\"" + configDir + "\" " + // Load other settings
+                               "--input-conf=\"" + inputConfPath + "\" " +
+                               "--osd-level=1 " +               // Enable OSD text
+                               "--osd-bar=yes " +               // Enable OSD bar
+                               "--osd-duration=2000 " +         // Show for 2 seconds
+                               "--ytdl-raw-options=force-ipv4= " + 
+                               "--ytdl-format=" + ytdlFormat + " " + // DYNAMIC RESOLUTION
+                               "--cache=yes " +                 // Enable Cache
+                               "--demuxer-max-bytes=150MiB " +  // Large buffer
                                "\"" + url + "\"";
                                
                 si.Arguments = args;
                 si.UseShellExecute = true; 
                 si.WindowStyle = ProcessWindowStyle.Normal;
                 
+                DateTime startTime = DateTime.Now;
                 mpvProcess = Process.Start(si);
+                
+                if (mpvProcess == null)
+                    throw new Exception("MPV failed to start");
 
                 if (selectedMinutes > 0)
                 {
@@ -370,9 +556,69 @@ namespace FocusMode
 
                 if (mpvProcess != null)
                     mpvProcess.WaitForExit();
+
+                // CLEANUP SESSION CONFIG
+                try { if (File.Exists(inputConfPath)) File.Delete(inputConfPath); } catch { }
+
+                // Check if MPV exited too quickly (video failed to load)
+                TimeSpan duration = DateTime.Now - startTime;
+
+                if (duration.TotalSeconds < 30 && !isRetry)
+                {
+                    // Video failed - update yt-dlp and retry
+                    ShowLoading("Video failed to load.\nUpdating yt-dlp...\nPlease wait...");
+                    if (UpdateYtDlp())
+                    {
+                        ShowLoading("Retrying...");
+                        Thread.Sleep(1000);
+                        RunFocusMode(url, true); // Retry once
+                        return;
+                    }
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: " + ex.Message);
+            }
             finally { EndFocus(); }
+        }
+
+        private bool UpdateYtDlp()
+        {
+            try
+            {
+                // IMPORTANT: GitHub requires TLS 1.2
+                ServicePointManager.SecurityProtocol = (SecurityProtocolType)3072; // Tls12
+
+                string ytdlpPath = Path.Combine(appDir, "yt-dlp.exe");
+                string backupPath = Path.Combine(appDir, "yt-dlp.old");
+                string url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
+
+                if (File.Exists(ytdlpPath))
+                {
+                    if (File.Exists(backupPath)) File.Delete(backupPath);
+                    File.Move(ytdlpPath, backupPath);
+                }
+
+                using (WebClient client = new WebClient())
+                {
+                    client.DownloadFile(url, ytdlpPath);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Update Failed: " + ex.Message);
+                try 
+                {
+                    string ytdlpPath = Path.Combine(appDir, "yt-dlp.exe");
+                    string backupPath = Path.Combine(appDir, "yt-dlp.old");
+                    if (!File.Exists(ytdlpPath) && File.Exists(backupPath))
+                        File.Move(backupPath, ytdlpPath);
+                }
+                catch {}
+                return false;
+            }
         }
 
         private void KillProcess(string name)

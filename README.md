@@ -1,115 +1,71 @@
-# Focus Mode Application
+# 🎯 Focus Mode - Ultimate Study Lock
 
-**A distraction-free YouTube lecture viewer for students who struggle to focus.**
+**Focus Mode** is a strict, distraction-free YouTube player designed for serious studying. It locks your system environment and restricts player controls to ensure you focus ONLY on the content.
 
-Focus Mode is a system-locking Windows application designed specifically for students who face difficulty concentrating on YouTube lectures due to constant distractions. It creates a "hard lock" environment where ONLY the video and essential controls are accessible, eliminating temptations to browse, multitask, or exit early.
+![Focus Mode Icon](https://raw.githubusercontent.com/Wait-What/FocusMode/main/focus_icon.ico)
 
-> 🔒 **Privacy-Focused:** This app runs entirely on your local computer and collects ZERO data. See [PRIVACY.md](PRIVACY.md) for details.
+## ✨ Features
 
-## Features
+-   **🔒 Hard System Lock**: Minimizes distractions by hiding the database bar and blocking Task Manager (optional in code) during sessions.
+-   **📺 Resolution Control**: Select your preferred quality from **360p** up to **4K** (Default: 720p).
+-   **⚡ Strict Input Enforcement**: Only 5 specific keys work. Everything else (Space, Arrows, Enter, Mouse Wheel) is **BANNED** to prevent skipping or diversion.
+-   **🛡️ Robust Playback**:
+    -   **Session-Unique Configs**: Generates fresh settings for every video to prevent glitches.
+    -   **Smart Buffering**: 150MB cache pre-buffer for smooth 4K/1080p streaming.
+    -   **IPv4 Enforcement**: Prevents common YouTube throttling/buffering issues.
+-   **⏱️ Study Timer**: Preset durations (30m, 1h, etc.) or Custom Timer.
 
-- **Hard Lock**: Kills `explorer.exe` (Taskbar, Desktop) and `taskmgr.exe` to prevent exiting.
-- **Strict Controls**: ONLY `L` (speed up), `K` (speed down), `A` (volume down), `S` (volume up), and `R` (reset speed) keys work. All other keys (Space, Esc, Arrows) are disabled.
-- **Timer Modes**: Select from presets (30m, 1h, etc.), custom duration, or "Full Video" mode.
-- **Process Blocking**: Continuously blocks Task Manager to prevent forced termination.
-- **Clean UI**: Minimalist Material Design interface.
+## 🎹 Strict Key Bindings
 
----
-
-## Quick Start
-
-### Step 1: Download All Required Files
-
-You need **4 files** in the same folder:
-
-| File | Description | Download Link |
-|------|-------------|---------------|
-| `FocusMode.exe` | The main application | **Included in this repo** |
-| `mpv.exe` | Media player (required) | [SourceForge MPV Builds](https://sourceforge.net/projects/mpv-player-windows/files/) |
-| `yt-dlp.exe` | YouTube downloader (required) | [yt-dlp Releases](https://github.com/yt-dlp/yt-dlp/releases/latest) |
-| `d3dcompiler_43.dll` | Graphics library (often bundled with MPV) | Included with MPV download |
-
-### Step 2: Setup Folder Structure
-
-Create a folder (e.g., `C:\FocusMode\`) and place files like this:
-
-```
-C:\FocusMode\
-├── FocusMode.exe       ← Main application
-├── mpv.exe             ← Download from SourceForge
-├── yt-dlp.exe          ← Download from GitHub
-├── d3dcompiler_43.dll  ← Comes with MPV (copy if needed)
-└── config\             ← Configuration folder
-    ├── mpv.conf        ← MPV settings (included in repo)
-    └── input.conf      ← Key bindings (included in repo)
-```
-
-### Step 3: Run
-
-1. Right-click `FocusMode.exe` → **Run as Administrator** (recommended)
-2. Paste a YouTube URL
-3. Select duration
-4. Click **START FOCUS MODE**
-
----
-
-## How to Exit
-
-**The ONLY ways to exit:**
-1. Wait for the video/timer to end
-2. Reboot your PC
-
-This is intentional - it forces you to stay focused!
-
----
-
-## Keyboard Controls (During Video)
+Only these keys are allowed. All others are ignored.
 
 | Key | Action |
-|-----|--------|
-| `L` | Speed up (+0.1x) |
-| `K` | Speed down (-0.1x) |
-| `S` | Volume up (+5%) |
-| `A` | Volume down (-5%) |
-| `R` | Reset speed to 1.0x |
+| :--- | :--- |
+| **L** | Speed +0.1x |
+| **K** | Speed -0.1x |
+| **R** | Reset Speed to 1.0x |
+| **S** | Volume +5% |
+| **A** | Volume -5% |
 
-**All other keys are disabled** (Space, Escape, arrows, etc.)
+## 🛠️ Installation & Requirements
 
----
+The application requires the following **4 files** in the same folder as `FocusMode.exe`:
 
-## Configuration Files
+1.  **`mpv.exe`** (Media Player)
+2.  **`ffmpeg.exe`** (CRITICAL: Required for 1080p/4K streaming)
+3.  **`yt-dlp.exe`** (Downloader)
+4.  **`focus_icon.ico`** (App Icon)
 
-The `config/` folder contains MPV settings:
-
-- **`mpv.conf`**: Fullscreen, always-on-top, disable UI elements
-- **`input.conf`**: Strict key bindings (only L, K, A, S, R work)
-
-You can copy these to `%APPDATA%\mpv\` if you want them to apply globally.
-
----
-
-## Building from Source
-
-Requires .NET Framework (comes with Windows):
-
-```powershell
-C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:FocusMode.exe /reference:System.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll FocusMode.cs
+### 📂 Directory Structure
+```
+FocusMode/
+├── FocusMode.exe       # Main Application
+├── mpv.exe            # Player Core
+├── ffmpeg.exe         # Processing Core (MUST BE PRESENT)
+├── yt-dlp.exe         # Stream Extractor
+├── focus_icon.ico     # Icon
+└── config\            # (Auto-Generated per session)
 ```
 
+## 🚀 How to Build
+
+You can compile this project using the built-in C# compiler on any Windows machine (no Visual Studio required).
+
+**Run this command in PowerShell:**
+```powershell
+& "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /out:"FocusMode.exe" /reference:System.dll,System.Windows.Forms.dll,System.Drawing.dll "FocusMode.cs" /win32icon:"focus_icon.ico"
+```
+
+## 📝 Configuration Logic
+
+Focus Mode uses a **Hybrid Input Strategy**:
+1.  **On Launch**: It generates a unique `input_{GUID}.conf` file.
+2.  **Explicit Whitelist**: It allows only specific keys (L, K, A, S, R).
+3.  **Explicit Grant**: It explicitly ignores common keys (Space, Enter, Esc, Arrows) to prevent default MPV behavior overrides.
+4.  **Auto-Cleanup**: The config file is deleted immediately after the session ends.
+
+## ⚠️ Disclaimer
+This tool includes a `Task Manager Blocker` to prevent force-quitting during a focus session. Use responsibly. To exit in an emergency, you may need to restart your computer if the timer hasn't finished.
+
 ---
-
-## Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| MPV doesn't open | Make sure `mpv.exe` and `yt-dlp.exe` are in the same folder as `FocusMode.exe` |
-| Video won't play | Update `yt-dlp.exe` to the latest version |
-| Keys not working | Copy `config/` folder to `%APPDATA%\mpv\` |
-| Black screen | Install `d3dcompiler_43.dll` (copy from MPV download) |
-
----
-
-## Privacy & License
-
-- **Privacy Policy:** See [PRIVACY.md](PRIVACY.md) - We collect ZERO data.
-- **License:** MIT License. See [LICENSE](LICENSE) file.
+*Built for the ultimate focused mind.*
