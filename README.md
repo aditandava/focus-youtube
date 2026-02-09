@@ -2,7 +2,7 @@
 
 **Focus Mode** is a strict, distraction-free YouTube player designed for serious studying. It locks your system environment and restricts player controls to ensure you focus ONLY on the content.
 
-![Focus Mode Icon](https://raw.githubusercontent.com/Wait-What/FocusMode/main/focus_icon.ico)
+![Focus Mode Icon](https://raw.githubusercontent.com/aditandava/focus-youtube/main/focus_icon.ico)
 
 ## ✨ Features
 
