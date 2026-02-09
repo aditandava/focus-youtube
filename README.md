@@ -10,61 +10,100 @@ A strict, distraction-free YouTube viewer designed for deep work. Locks your sys
 - **Process Blocking**: Continuously blocks Task Manager to prevent forced termination.
 - **Clean UI**: Minimalist Material Design interface.
 
-## Installation & Setup
+---
 
-To run Focus Mode, you need the application executable and its dependencies (MPV media player and yt-dlp) in the same folder.
+## Quick Start
 
-### 1. Download Focus Mode
-Download the latest `FocusMode.exe` from the [Releases](../../releases) page (or compile it yourself).
+### Step 1: Download All Required Files
 
-### 2. Install Dependencies (CRITICAL)
-Focus Mode requires **MPV** (to play videos) and **yt-dlp** (to stream from YouTube).
+You need **4 files** in the same folder:
 
-#### Step A: Get MPV
-1.  Go to [MPV.io Installation](https://mpv.io/installation/) or directly to [SourceForge Builds](https://sourceforge.net/projects/mpv-player-windows/files/).
-2.  Download the latest **64-bit bootstrapper** or 7zip archive (e.g., `mpv-x86_64-...`).
-3.  Extract the contents. You specifically need:
-    - `mpv.exe`
-    - `d3dcompiler_43.dll` (if included/required by your version)
-    - `ffmpeg.exe` (optional but recommended)
+| File | Description | Download Link |
+|------|-------------|---------------|
+| `FocusMode.exe` | The main application | **Included in this repo** |
+| `mpv.exe` | Media player (required) | [SourceForge MPV Builds](https://sourceforge.net/projects/mpv-player-windows/files/) |
+| `yt-dlp.exe` | YouTube downloader (required) | [yt-dlp Releases](https://github.com/yt-dlp/yt-dlp/releases/latest) |
+| `d3dcompiler_43.dll` | Graphics library (often bundled with MPV) | Included with MPV download |
 
-#### Step B: Get yt-dlp
-1.  Go to the [yt-dlp GitHub Releases](https://github.com/yt-dlp/yt-dlp/releases).
-2.  Download `yt-dlp.exe`.
+### Step 2: Setup Folder Structure
 
-### 3. Organize Files
-Create a folder (e.g., `FocusMode`) and place ALL files inside it. Your folder should look like this:
+Create a folder (e.g., `C:\FocusMode\`) and place files like this:
 
-```text
-FocusMode/
-├── FocusMode.exe       <-- The application
-├── mpv.exe            <-- Media player
-├── yt-dlp.exe         <-- YouTube downloader
-├── d3dcompiler_43.dll <-- Graphics helper (if needed)
-└── config/            <-- Config folder (created automatically or manually)
-    ├── mpv.conf
-    └── input.conf
+```
+C:\FocusMode\
+├── FocusMode.exe       ← Main application
+├── mpv.exe             ← Download from SourceForge
+├── yt-dlp.exe          ← Download from GitHub
+├── d3dcompiler_43.dll  ← Comes with MPV (copy if needed)
+└── config\             ← Configuration folder
+    ├── mpv.conf        ← MPV settings (included in repo)
+    └── input.conf      ← Key bindings (included in repo)
 ```
 
-**Note:** If you don't have the `config` folder, `FocusMode.exe` will use its internal strict defaults, but you can manually create it to customize behavior (though strict keys are enforced via command line).
+### Step 3: Run
 
-## Usage
+1. Right-click `FocusMode.exe` → **Run as Administrator** (recommended)
+2. Paste a YouTube URL
+3. Select duration
+4. Click **START FOCUS MODE**
 
-1.  Run `FocusMode.exe` as Administrator (recommended for system locking).
-2.  Paste a YouTube link.
-3.  Select a duration.
-4.  Click **START FOCUS MODE**.
+---
 
-**To Exit Early:**
-The only way to exit before the timer ends is to **Reboot your PC** or wait for the video to finish. This is by design.
+## How to Exit
+
+**The ONLY ways to exit:**
+1. Wait for the video/timer to end
+2. Reboot your PC
+
+This is intentional - it forces you to stay focused!
+
+---
+
+## Keyboard Controls (During Video)
+
+| Key | Action |
+|-----|--------|
+| `L` | Speed up (+0.1x) |
+| `K` | Speed down (-0.1x) |
+| `S` | Volume up (+5%) |
+| `A` | Volume down (-5%) |
+| `R` | Reset speed to 1.0x |
+
+**All other keys are disabled** (Space, Escape, arrows, etc.)
+
+---
+
+## Configuration Files
+
+The `config/` folder contains MPV settings:
+
+- **`mpv.conf`**: Fullscreen, always-on-top, disable UI elements
+- **`input.conf`**: Strict key bindings (only L, K, A, S, R work)
+
+You can copy these to `%APPDATA%\mpv\` if you want them to apply globally.
+
+---
 
 ## Building from Source
 
-1.  **Dependencies**: You need the C# compiler (`csc.exe`) which typically comes with .NET Framework at `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe`.
-2.  **Compile**:
-    ```powershell
-    csc /target:winexe /out:FocusMode.exe /reference:System.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll FocusMode.cs
-    ```
+Requires .NET Framework (comes with Windows):
+
+```powershell
+C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:FocusMode.exe /reference:System.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll FocusMode.cs
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| MPV doesn't open | Make sure `mpv.exe` and `yt-dlp.exe` are in the same folder as `FocusMode.exe` |
+| Video won't play | Update `yt-dlp.exe` to the latest version |
+| Keys not working | Copy `config/` folder to `%APPDATA%\mpv\` |
+| Black screen | Install `d3dcompiler_43.dll` (copy from MPV download) |
+
+---
 
 ## License
 
