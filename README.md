@@ -33,10 +33,12 @@ Only these keys are allowed. All others are ignored.
 
 The application requires the following **4 files** in the same folder as `FocusMode.exe`:
 
-1.  **`mpv.exe`** (Media Player)
-2.  **`ffmpeg.exe`** (CRITICAL: Required for 1080p/4K streaming)
-3.  **`yt-dlp.exe`** (Downloader)
-4.  **`focus_icon.ico`** (App Icon)
+1.  **`mpv.exe`** - [Download Latest (zip)](https://github.com/shinchiro/mpv-winbuild-cmake/releases)
+    -   *Extract `mpv.exe` from the zip.*
+2.  **`ffmpeg.exe`** - [Download Latest (zip)](https://github.com/yt-dlp/FFmpeg-Builds/releases)
+    -   *Extract `ffmpeg.exe` from the zip. (CRITICAL for 1080p+)*
+3.  **`yt-dlp.exe`** - [Download Direct (.exe)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
+4.  **`focus_icon.ico`** (Included in this repository)
 
 ### 📂 Directory Structure
 ```
