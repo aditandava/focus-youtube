@@ -1,6 +1,10 @@
 # Focus Mode Application
 
-A strict, distraction-free YouTube viewer designed for deep work. Locks your system, kills distractions, and forces you to focus on a single video or playlist until the timer expires.
+**A distraction-free YouTube lecture viewer for students who struggle to focus.**
+
+Focus Mode is a system-locking Windows application designed specifically for students who face difficulty concentrating on YouTube lectures due to constant distractions. It creates a "hard lock" environment where ONLY the video and essential controls are accessible, eliminating temptations to browse, multitask, or exit early.
+
+> 🔒 **Privacy-Focused:** This app runs entirely on your local computer and collects ZERO data. See [PRIVACY.md](PRIVACY.md) for details.
 
 ## Features
 
@@ -105,6 +109,7 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /target:winexe /out:Focu
 
 ---
 
-## License
+## Privacy & License
 
-MIT License. See [LICENSE](LICENSE) file.
+- **Privacy Policy:** See [PRIVACY.md](PRIVACY.md) - We collect ZERO data.
+- **License:** MIT License. See [LICENSE](LICENSE) file.
