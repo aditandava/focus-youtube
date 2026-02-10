@@ -15,6 +15,7 @@
 - **Screenshots Blocked** — PrintScreen key intercepted
 - **Win Key Blocked** — Start menu disabled during focus
 - **Multi-Monitor Blackout** — Secondary screens covered with black overlay
+- **Audio Isolation** — **Mutes ALL other apps** (Spotify, Discord, chrome, etc.) except the video player.
 
 ### 🖱️ Mouse-Only Controls (Keyboard 100% Disabled)
 | Mouse Action | Effect |

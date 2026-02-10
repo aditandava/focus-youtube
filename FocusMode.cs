@@ -13,6 +13,188 @@ using System.Runtime.InteropServices;
 namespace FocusMode
 {
     // =========================================================================
+    // AUDIO ISOLATION HELPERS (COM Interfaces for WASAPI)
+    // =========================================================================
+    public static class AudioIsolation
+    {
+        [ComImport]
+        [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+        private class MMDeviceEnumerator { }
+
+        [ComImport]
+        [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IMMDeviceEnumerator
+        {
+            int NotImpl1();
+            [PreserveSig]
+            int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
+            // Other methods omitted
+        }
+
+        [ComImport]
+        [Guid("D666063F-1587-4E43-81F1-B948E807363F")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IMMDevice
+        {
+            [PreserveSig]
+            int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+            // Other methods omitted
+        }
+
+        [ComImport]
+        [Guid("77AA99A0-1BD6-484F-8BC2-33C936E09E95")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IAudioSessionManager2
+        {
+            int NotImpl1();
+            [PreserveSig]
+            int GetSessionEnumerator(out IAudioSessionEnumerator SessionEnum);
+            // Other methods omitted
+        }
+
+        [ComImport]
+        [Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IAudioSessionEnumerator
+        {
+            [PreserveSig]
+            int GetCount(out int SessionCount);
+            [PreserveSig]
+            int GetSession(int SessionCount, out IAudioSessionControl Session);
+        }
+
+        [ComImport]
+        [Guid("F4B1A599-7266-4319-A8CA-E70ACB11E8CD")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IAudioSessionControl
+        {
+            int NotImpl1();
+            [PreserveSig]
+            int GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+            int NotImpl2();
+            int NotImpl3();
+            int NotImpl4();
+            int NotImpl5();
+            int NotImpl6();
+            int NotImpl7();
+            [PreserveSig]
+            int GetProcessId(out uint pRetVal);
+            // Other methods omitted
+        }
+
+        [ComImport]
+        [Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface ISimpleAudioVolume
+        {
+            [PreserveSig]
+            int SetMasterVolume(float fLevel, ref Guid EventContext);
+            [PreserveSig]
+            int GetMasterVolume(out float pfLevel);
+            [PreserveSig]
+            int SetMute(bool bMute, ref Guid EventContext);
+            [PreserveSig]
+            int GetMute(out bool pbMute);
+        }
+
+        public static void MuteAllExcept(int allowedPid)
+        {
+            try
+            {
+                MMDeviceEnumerator enumerator = new MMDeviceEnumerator();
+                IMMDeviceEnumerator devEnum = (IMMDeviceEnumerator)enumerator;
+                IMMDevice defaultDevice;
+                
+                // eRender = 0, eMultimedia = 1
+                devEnum.GetDefaultAudioEndpoint(0, 1, out defaultDevice);
+
+                Guid IID_IAudioSessionManager2 = typeof(IAudioSessionManager2).GUID;
+                object obj;
+                defaultDevice.Activate(ref IID_IAudioSessionManager2, 0, IntPtr.Zero, out obj);
+                IAudioSessionManager2 sessionManager = (IAudioSessionManager2)obj;
+
+                IAudioSessionEnumerator sessionEnum;
+                sessionManager.GetSessionEnumerator(out sessionEnum);
+
+                int count;
+                sessionEnum.GetCount(out count);
+
+                for (int i = 0; i < count; i++)
+                {
+                    IAudioSessionControl session;
+                    sessionEnum.GetSession(i, out session);
+                    
+                    uint pid;
+                    session.GetProcessId(out pid);
+
+                    if (pid != allowedPid && pid != 0) // pid 0 is system sounds usually
+                    {
+                         ISimpleAudioVolume volume = session as ISimpleAudioVolume;
+                         if (volume != null)
+                         {
+                             Guid guid = Guid.Empty;
+                             volume.SetMute(true, ref guid);
+                         }
+                    }
+
+                    Marshal.ReleaseComObject(session);
+                }
+
+                Marshal.ReleaseComObject(sessionEnum);
+                Marshal.ReleaseComObject(sessionManager);
+                Marshal.ReleaseComObject(defaultDevice);
+                Marshal.ReleaseComObject(enumerator);
+            }
+            catch { }
+        }
+
+        public static void UnmuteAll()
+        {
+             try
+            {
+                MMDeviceEnumerator enumerator = new MMDeviceEnumerator();
+                IMMDeviceEnumerator devEnum = (IMMDeviceEnumerator)enumerator;
+                IMMDevice defaultDevice;
+                
+                devEnum.GetDefaultAudioEndpoint(0, 1, out defaultDevice);
+
+                Guid IID_IAudioSessionManager2 = typeof(IAudioSessionManager2).GUID;
+                object obj;
+                defaultDevice.Activate(ref IID_IAudioSessionManager2, 0, IntPtr.Zero, out obj);
+                IAudioSessionManager2 sessionManager = (IAudioSessionManager2)obj;
+
+                IAudioSessionEnumerator sessionEnum;
+                sessionManager.GetSessionEnumerator(out sessionEnum);
+
+                int count;
+                sessionEnum.GetCount(out count);
+
+                for (int i = 0; i < count; i++)
+                {
+                    IAudioSessionControl session;
+                    sessionEnum.GetSession(i, out session);
+                    
+                    ISimpleAudioVolume volume = session as ISimpleAudioVolume;
+                    if (volume != null)
+                    {
+                        Guid guid = Guid.Empty;
+                        volume.SetMute(false, ref guid);
+                    }
+
+                    Marshal.ReleaseComObject(session);
+                }
+
+                Marshal.ReleaseComObject(sessionEnum);
+                Marshal.ReleaseComObject(sessionManager);
+                Marshal.ReleaseComObject(defaultDevice);
+                Marshal.ReleaseComObject(enumerator);
+            }
+            catch { }
+        }
+    }
+
+    // =========================================================================
     // BLACKOUT FORM - Covers secondary monitors with a black screen
     // =========================================================================
     public class BlackoutForm : Form
@@ -708,7 +890,7 @@ namespace FocusMode
             warningPanel.BackColor = Color.FromArgb(31, 31, 46);
 
             Label warningLabel = new Label();
-            warningLabel.Text = "⚠ Keyboard DISABLED | Alt+Tab BLOCKED | Screenshots BLOCKED\n🖱 Scroll = Speed | Right-Click = Vol+ | Left-Click = Vol- | Mid = Reset";
+            warningLabel.Text = "⚠ Keyboard DISABLED | Alt+Tab BLOCKED | Other Audio MUTED\n🖱 Scroll = Speed | Right-Click = Vol+ | Left-Click = Vol- | Mid = Reset";
             warningLabel.Font = new Font("Segoe UI", 9);
             warningLabel.ForeColor = Color.FromArgb(251, 191, 36);
             warningLabel.AutoSize = false;
@@ -831,7 +1013,10 @@ namespace FocusMode
             focusActive = true;
 
             KillProcess("mpv");
-
+            
+            // Ensure audio is unmuted before starting (in case of crash previously)
+            AudioIsolation.UnmuteAll();
+            
             ThreadPool.QueueUserWorkItem(delegate { RunFocusMode(url, false); });
         }
 
@@ -862,7 +1047,7 @@ namespace FocusMode
                 KillProcess("taskmgr");
 
                 blockerCts = new CancellationTokenSource();
-                ThreadPool.QueueUserWorkItem(delegate { BlockTaskMgr(); });
+                ThreadPool.QueueUserWorkItem(delegate { BlockTaskMgrAndEnforceAudio(); });
 
                 // Install keyboard hook on UI thread
                 this.Invoke((MethodInvoker)delegate {
@@ -1068,6 +1253,7 @@ namespace FocusMode
                     // BREAK phase (not on last cycle)
                     if (cycle < totalCycles - 1)
                     {
+                        AudioIsolation.UnmuteAll(); // Unmute during break
                         PlayEndSound();
                         ShowLoading("🍅 Pomodoro " + (cycle + 1) + "/" + totalCycles + " DONE!\n\n☕ BREAK - " + breakMinutes + " min\nRelax your eyes...\n\n" + GetRandomQuote());
                         Thread.Sleep(breakMinutes * 60 * 1000);
@@ -1107,6 +1293,9 @@ namespace FocusMode
         {
             focusActive = false;
             if (blockerCts != null) blockerCts.Cancel();
+
+            // Unmute EVERYTHING
+            try { AudioIsolation.UnmuteAll(); } catch { }
 
             // Remove keyboard hook
             try { this.Invoke((MethodInvoker)delegate { RemoveKeyboardHook(); RemoveBlackout(); }); } catch { }
@@ -1189,12 +1378,19 @@ namespace FocusMode
             catch { }
         }
 
-        private void BlockTaskMgr()
+        private void BlockTaskMgrAndEnforceAudio()
         {
             while (focusActive)
             {
                 KillProcess("taskmgr");
-                Thread.Sleep(1000);
+                
+                // Audio Enforcer
+                if (mpvProcess != null && !mpvProcess.HasExited)
+                {
+                    try { AudioIsolation.MuteAllExcept(mpvProcess.Id); } catch { }
+                }
+                
+                Thread.Sleep(2000);
             }
         }
 
