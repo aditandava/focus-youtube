@@ -1,93 +1,81 @@
-# 🎯 Focus Mode - Ultimate Study Lock
+# Focus Mode - Distraction-Free YouTube Player
 
-**Focus Mode** is a strict, distraction-free YouTube player designed for serious studying. It locks your system environment and restricts all controls to mouse-only, ensuring you focus ONLY on the content.
+**Focus Mode** is a strict, distraction-free media player designed for focused study sessions. By locking down the system environment and restricting player controls to mouse-only input, it eliminates external distractions and ensures concentration on the content.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/aditandava/focus-youtube/main/focus_icon.ico" alt="Focus Mode Icon" width="128">
 </p>
 
-## ✨ Features
+## Key Features
 
-### 🔒 System Lock
-- **Taskbar Hidden** — Explorer killed during session
-- **Task Manager Blocked** — Continuously killed in background
-- **Alt+Tab Blocked** — Low-level keyboard hook prevents window switching
-- **Screenshots Blocked** — PrintScreen key intercepted
-- **Win Key Blocked** — Start menu disabled during focus
-- **Multi-Monitor Blackout** — Secondary screens covered with black overlay
-- **Audio Isolation** — **Mutes ALL other apps** (Spotify, Discord, chrome, etc.) except the video player.
+- **System Lockdown**: Minimizes distractions by hiding the Windows taskbar and blocking Task Manager access during active sessions.
+- **Resolution Control**: Supports playback quality ranging from **360p** to **4K** (Default: 720p).
+- **Immersive Playback**: Video plays in true fullscreen mode without window decorations.
+- **Mouse-Only Interface**: Keyboard input is completely disabled to prevent accidental exits or distractions.
+- **Auto-Hide Cursor**: Cursor disappears after 500ms of inactivity.
+- **Robust Streaming**:
+    - **Session-Unique Configurations**: Generates fresh settings for every session to ensure reliability.
+    - **Smart Buffering**: Pre-buffers up to 150MB for smooth playback of high-resolution content.
+    - **IPv4 Enforcement**: Mitigates common throttling and buffering issues associated with YouTube playback.
+- **Study Timer**: Configurable session durations (e.g., 30m, 1h) or custom timer options.
 
-### 🖱️ Mouse-Only Controls (Keyboard 100% Disabled)
-| Mouse Action | Effect |
+## Controls
+
+To ensure focus, keyboard input is explicitly ignored. All control is managed via the mouse.
+
+| Action | Input |
 | :--- | :--- |
-| 🔄 **Scroll UP** | Speed +0.1x |
-| 🔄 **Scroll DOWN** | Speed -0.1x |
-| 🖱️ **Right-Click** | Volume +5% |
-| 🖱️ **Left-Click** | Volume -5% |
-| 🖱️ **Middle-Click** | Reset Speed to 1.0x |
+| **Increase Speed** | Scroll Up (+0.1x) |
+| **Decrease Speed** | Scroll Down (-0.1x) |
+| **Increase Volume** | Right-Click (+5%) |
+| **Decrease Volume** | Left-Click (-5%) |
+| **Reset Speed** | Middle-Click (Reset to 1.0x) |
 
-### 📺 Playback
-- **Resolution Control** — 360p to 4K
-- **Fullscreen** — True fullscreen, no window bars
-- **Cursor Auto-Hide** — Disappears after 500ms
-- **Playlist Support** — Checkbox to play full YouTube playlists
-- **Subtitle Toggle** — Enable auto-detected English subtitles
-- **Smart Buffering** — 150MB cache for smooth streaming
-- **IPv4 Enforcement** — Prevents YouTube throttling
+> **Note:** Common keyboard shortcuts (Space, Escape, Arrow Keys, etc.) are disabled during playback.
 
-### 🍅 Pomodoro Mode
-- 25 min focus → 5 min break cycles
-- Auto-pauses video during breaks
-- Shows motivational quotes between cycles
-- Sound alert at each phase transition
+## Installation & Requirements
 
-### 📊 Session Tracking
-- **Session Log** — Every session saved to `focus_log.txt` (date, duration, URL)
-- **Focus Streak** — Tracks consecutive study days (shown on main screen)
-- **Session Stats** — Summary popup after each session with duration & streak
-- **Notes** — Optional notes prompt after session (saved to `focus_notes.txt`)
-- **Last URL Memory** — Auto-fills your last used URL on next launch
+The application relies on `mpv` and `ffmpeg` for playback and processing. Ensure the following files are present in the application directory:
 
-### 💬 Motivational Quotes
-Random study quotes shown on loading screens for inspiration.
+1.  **`FocusMode.exe`**: The main application executable.
+2.  **`mpv.exe`**: [Download Build](https://github.com/shinchiro/mpv-winbuild-cmake/releases)
+3.  **`ffmpeg.exe`**: [Download Build](https://github.com/yt-dlp/FFmpeg-Builds/releases) (Required for 1080p+ streaming)
+4.  **`yt-dlp.exe`**: [Download Release](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
+5.  **`focus_icon.ico`**: Application icon file.
 
-### 🔔 Session End Sound
-System notification sounds play 3x when timer expires or Pomodoro phase ends.
+### Directory Structure
 
-## 🛠️ Installation & Requirements
-
-Place these **4 files** in the same folder as `FocusMode.exe`:
-
-1. **`mpv.exe`** — [Download](https://github.com/shinchiro/mpv-winbuild-cmake/releases)
-2. **`ffmpeg.exe`** — [Download](https://github.com/yt-dlp/FFmpeg-Builds/releases) *(Required for 1080p+)*
-3. **`yt-dlp.exe`** — [Download](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)
-4. **`focus_icon.ico`** — Included in repo
-
-### 📂 Directory Structure
-```
+```text
 C:\mpv\
-├── FocusMode.exe          # Main Application
-├── mpv.exe                # Player Core
-├── ffmpeg.exe             # Processing Core
-├── yt-dlp.exe             # Stream Extractor
-├── focus_icon.ico         # Icon
-├── focus_log.txt          # (Auto) Session history
-├── focus_streak.txt       # (Auto) Streak data
-├── focus_notes.txt        # (Auto) Session notes
-├── last_url.txt           # (Auto) Last used URL
-└── portable_config\       # (Auto) MPV config
+├── FocusMode.exe        # Application
+├── mpv.exe              # Player Core
+├── ffmpeg.exe           # Processing Core
+├── yt-dlp.exe           # Extractor
+├── focus_icon.ico       # Icon Resource
+└── portable_config\     # Session Configuration (Auto-Generated)
     ├── input.conf
     └── mpv.conf
 ```
 
-## 🚀 How to Build
+## Compilation
+
+The project can be compiled using the standard .NET Framework compiler included with Windows. 
+
+Run the following command in **PowerShell**:
 
 ```powershell
-& "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /win32icon:"focus_icon.ico" /out:"FocusMode.exe" "FocusMode.cs"
+& "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /target:winexe /out:"FocusMode.exe" /win32icon:"focus_icon.ico" "FocusMode.cs"
 ```
 
-## ⚠️ Disclaimer
-This tool blocks Alt+Tab, Task Manager, Win key, and screenshots during sessions. Only video completion, timer expiry, or system restart will restore normal operation. Use responsibly.
+## Configuration Logic
 
----
-*Built for the ultimate focused mind.* 🧠
+Focus Mode utilizes a rigorous configuration strategy to enforce study conditions:
+
+1.  **Session Initialization**: Automatically generates a clean `portable_config` directory on launch.
+2.  **Input Filtering**: Whitelists specific mouse inputs while blacklisting all keyboard events (A-Z, F-Keys, System Keys).
+3.  **Interface Simplification**: Disables the On-Screen Controller (OSC) to prevent interactive distractions.
+4.  **Environment Control**: Enforces fullscreen mode and manages cursor visibility.
+
+## Disclaimer
+
+**Use Responsibly**: This application includes a Task Manager blocker designed to prevent early termination of study sessions. In the event of an emergency or software freeze, a system restart may be required if the session timer has not elapsed.
